@@ -107,38 +107,42 @@ router.put("/:id", async (req, res) => {
 
     
 // })
+
 router.post('/login', async (req, res) => {
   console.log('Login request received');
 
-  const user = await User.findOne({ email: req.body.email }).select('-password');
-  const secret = process.env.secret;
+  const user = await User.findOne({ email: req.body.email }).select('+password'); // Include password field
+  const secret = process.env.SECRET;
 
   if (!user) {
     console.log('User not found');
-    return res.status(400).json({ msg: 'The user not found' });
+    return res.status(400).json({ msg: 'User not found' });
   }
-  console.log(user)
-  if (user && bcrypt.compare(req.body.password, user.password)) {
-    
+  console.log(user);
 
+  // Compare the provided password with the stored hash
+  const isMatch = await bcrypt.compare(req.body.password, user.password);
+
+  if (isMatch) {
     console.log('Password matched');
     const token = jwt.sign(
       {
-        id: user.id,
+        id: user._id,
         role: user.role,
       },
       secret,
       { expiresIn: '1d' }
     );
-    
+
     return res.status(200).json({ user: user, token: token });
   } else {
     console.log('Password is wrong');
-    console.log("request",req.body.password);
-    console.log("user",user.password);
+    console.log('Request:', req.body.password);
+    console.log('User:', user.password);
     return res.status(400).json({ msg: 'Password is wrong!' });
   }
 });
+
 
 
 
