@@ -162,6 +162,7 @@ router.post("/register", async (req, res) => {
       building,
       landmark,
       country,
+      role
     } = req.body;
 
     // Check if user already exists
@@ -192,6 +193,7 @@ router.post("/register", async (req, res) => {
       country,
       password: hashedPassword,
       confirmPassword: hashedPassword,
+      role,
     });
 
     res.json(createUser);
