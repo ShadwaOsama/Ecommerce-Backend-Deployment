@@ -108,44 +108,68 @@ router.put("/:id", async (req, res) => {
     
 // })
 
-router.post('/login', async (req, res) => {
-  console.log('Login request received');
+// router.post('/login', async (req, res) => {
+//   console.log('Login request received');
 
-  const user = await User.findOne({ email: req.body.email }).select('+password'); // Include password field
-  const secret = process.env.SECRET;
+//   const user = await User.findOne({ email: req.body.email }).select('+password'); // Include password field
+//   const secret = process.env.SECRET;
 
-  if (!user) {
-    console.log('User not found');
-    return res.status(400).json({ msg: 'User not found' });
-  }
-  console.log(user);
+//   if (!user) {
+//     console.log('User not found');
+//     return res.status(400).json({ msg: 'User not found' });
+//   }
+//   console.log(user);
 
-  // Compare the provided password with the stored hash
-  const isMatch = await bcrypt.compare(req.body.password, user.password);
+//   // Compare the provided password with the stored hash
+//   const isMatch = await bcrypt.compare(req.body.password, user.password);
 
-  if (isMatch) {
-    console.log('Password matched');
+//   if (isMatch) {
+//     console.log('Password matched');
+//     const token = jwt.sign(
+//       {
+//         id: user._id,
+//         role: user.role,
+//       },
+//       secret,
+//       { expiresIn: '1d' }
+//     );
+
+//     return res.status(200).json({ user: user, token: token });
+//   } else {
+//     console.log('Password is wrong');
+//     console.log('Request:', req.body.password);
+//     console.log('User:', user.password);
+//     return res.status(400).json({ msg: 'Password is wrong!' });
+//   }
+// });
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user and include password for comparison
+    const user = await User.findOne({ email }).select("+password");
+    if (!user) {
+      return res.status(400).json({ msg: "User not found" });
+    }
+
+    // Compare provided password with stored hash
+    const isMatch = await user.correctPassword(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ msg: "Incorrect password" });
+    }
+
+    // Generate JWT token
     const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-      },
-      secret,
-      { expiresIn: '1d' }
+      { id: user._id, role: user.role },
+      process.env.SECRET,
+      { expiresIn: "1d" }
     );
 
-    return res.status(200).json({ user: user, token: token });
-  } else {
-    console.log('Password is wrong');
-    console.log('Request:', req.body.password);
-    console.log('User:', user.password);
-    return res.status(400).json({ msg: 'Password is wrong!' });
+    res.status(200).json({ user, token });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
-
-
-
-
 router.post("/register", async (req, res) => {
   try {
     const {
@@ -168,18 +192,15 @@ router.post("/register", async (req, res) => {
     // Check if user already exists
     const oldUser = await User.findOne({ email });
     if (oldUser) {
-      return res.status(409).json("Email already exists");
+      return res.status(409).json({ message: "Email already exists" });
     }
 
     if (password !== confirmPassword) {
-        return res.status(400).json({ message: "Passwords do not match" });
-      }
-    // Hash passwords
-    const hashedPassword = await bcrypt.hash(password, 10);
-   
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
 
     // Create user
-    const createUser = await User.create({
+    const newUser = new User({
       email,
       name,
       phone,
@@ -191,16 +212,74 @@ router.post("/register", async (req, res) => {
       building,
       landmark,
       country,
-      password: hashedPassword,
-      confirmPassword: hashedPassword,
-      role,
+      password,
+      role
     });
+    await newUser.save();
 
-    res.json(createUser);
+    res.status(201).json(newUser);
   } catch (err) {
     res.status(409).json({ message: err.message });
   }
 });
+
+
+
+// router.post("/register", async (req, res) => {
+//   try {
+//     const {
+//       email,
+//       name,
+//       password,
+//       confirmPassword,
+//       phone,
+//       postalCode,
+//       street,
+//       apartment,
+//       zip,
+//       city,
+//       building,
+//       landmark,
+//       country,
+//       role
+//     } = req.body;
+
+//     // Check if user already exists
+//     const oldUser = await User.findOne({ email });
+//     if (oldUser) {
+//       return res.status(409).json("Email already exists");
+//     }
+
+//     if (password !== confirmPassword) {
+//         return res.status(400).json({ message: "Passwords do not match" });
+//       }
+//     // Hash passwords
+//     const hashedPassword = await bcrypt.hash(password, 10);
+   
+
+//     // Create user
+//     const createUser = await User.create({
+//       email,
+//       name,
+//       phone,
+//       postalCode,
+//       street,
+//       apartment,
+//       zip,
+//       city,
+//       building,
+//       landmark,
+//       country,
+//       password: hashedPassword,
+//       confirmPassword: hashedPassword,
+//       role,
+//     });
+
+//     res.json(createUser);
+//   } catch (err) {
+//     res.status(409).json({ message: err.message });
+//   }
+// });
 
 router.delete("/:id", auth, (req, res) => {
   User.findByIdAndDelete(req.params.id)
