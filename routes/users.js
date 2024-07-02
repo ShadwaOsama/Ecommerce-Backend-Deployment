@@ -186,7 +186,8 @@ router.post("/register", async (req, res) => {
       building,
       landmark,
       country,
-      role
+      role,
+      key
     } = req.body;
 
     // Check if user already exists
@@ -213,7 +214,8 @@ router.post("/register", async (req, res) => {
       landmark,
       country,
       password,
-      role
+      role,
+      key
     });
     await newUser.save();
 
