@@ -362,63 +362,41 @@ router.get("/get/count", auth, restrictTo("Admin"), async (req, res) => {
 // .get(getResetPasswordView)
 // .post(resetThePassword)
 
-router.route("/forgotPassword").post(forgotPassword);
-router.route("/resetPassword/:token").patch(resetPassword);
 
-router.post('/forgot-password', (req, res) => {
-  const {email} = req.body;
-  User.findOne({email: email})
-  .then(user => {
-      if(!user) {
-          return res.send({Status: "User not existed"})
-      } 
-      const token = jwt.sign({id: user._id}, "jwt_secret_key", {expiresIn: "1d"})
-      var transporter = nodemailer.createTransport({
-          host:process.env.EMAIL_HOST,
-          port:587,
-          service: 'hotmail',
-          auth: {
-            user: process.env.Email_username,
-            pass: process.env.Email_password
-          }
-        });
-        
-        var mailOptions = {
-          from: `Cineflix support <${process.env.Email_username}>`,
-          to:email,
-          subject: 'Reset your password',
-          text: `http://localhost:3000/reset_password/${user._id}/${token}`
-        };
-        
-        transporter.sendMail(mailOptions, function(error, info){
-          if (error) {
-            console.log(error);
-          } else {
-            return res.send({Status: "Success"})
-          }
-        });
-  })
-})
+const forgetPassword = async (req, res) => {
+  const { email, key } = req.body;
+  let user = await User.findOne({ email });
+  if (user) {
+    if (user.key == key) {
+      //res.redirect(/success/${user._id});
+      res.json({ success: true, userId: user._id });
+    } else {
+      res.json({ message: 'key is wrong' });
+    }
+  } else {
+    res.json({ message: 'email not found' });
+  }
+};
 
 
-router.post('/reset-password/:id/:token', (req, res) => {
-  const {id, token} = req.params
-  const {password} = req.body
-  console.log("token", token)
-  jwt.verify(token, "jwt_secret_key", (err, decoded) => {
-      if(err) {
-          return res.json({Status: "Error with token"})
-      } else {
-          bcrypt.hash(password, 10)
-          .then(hash => {
-              User.findByIdAndUpdate({_id: id}, {password: hash})
-              .then(u => res.send({Status: "Success"}))
-              .catch(err => res.send({Status: err}))
-          })
-          .catch(err => res.send({Status: err}))
-      }
-  })
-})
+const updatePassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { password  } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.findByIdAndUpdate(
+      id,
+      { password: hashedPassword , confirmPassword: hashedPassword },
+    
+      { new: true }
+    );
+    res.status(200).json(user);
+  } catch (err) {
+    res.json(err);
+  }
+}
 
-
+router.post('/forgetPassword', forgetPassword);
+//reset password
+router.patch('/success/:id', updatePassword)
 module.exports = router;
