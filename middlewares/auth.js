@@ -70,7 +70,7 @@ function auth(req,res,next){
   try{
       let decode = jwt.verify(authorization,process.env.SECRET);
       // req.id=decode.data.id;
-       req.role=decode.data.role;
+     //  req.role=decode.data.role;
       req.user = decode.data; 
       next()
   }   catch(error){
