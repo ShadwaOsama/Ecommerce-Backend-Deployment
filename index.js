@@ -7,9 +7,10 @@ require('dotenv/config')
 
 
 
-app.use(express.json())
 app.use(cors());
 app.options('*', cors())
+
+app.use(express.json())
 app.use(express.static("public"))
 ///////////////////////////////////////////
 
@@ -184,6 +185,7 @@ app.post('/create-checkout-session', async (req, res) => {
 
 app.post(
   "/webhook",
+  express.json({ type: "application/json" }),
   async (req, res) => {
     let data;
     let eventType;
@@ -251,8 +253,6 @@ const { it } = require('node:test')
 
 //middleware
 app.use(express.json())
-app.use(cors());
-app.options('*', cors())
 app.use(morgan('tiny'))
 app.use('/public/uploads', express.static(__dirname + '/public/uploads'));
 app.use(express.urlencoded({extended: false}))
