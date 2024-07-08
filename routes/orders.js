@@ -152,7 +152,7 @@ router.patch('/:id',async (req, res)=> {
 })
 
 
-router.delete('/:id',auth,restrictTo('Admin'), (req, res)=>{
+router.delete('/:id',auth, (req, res)=>{
     Order.findByIdAndDelete(req.params.id).then(async order =>{
         if(order) {
             await order.orderItems.map(async orderItem => {
@@ -196,7 +196,8 @@ router.get("/get/count",auth,restrictTo('Admin'), async (req, res) => {
             .populate({
                 path: 'orderItems',
                 populate: {
-                    path: 'product',
+                    path: 'productId',
+                    model:'Product',
                     populate: {
                         path: 'category'
                     }
