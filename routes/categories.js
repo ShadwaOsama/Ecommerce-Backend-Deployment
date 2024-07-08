@@ -95,7 +95,8 @@ router.delete('/:id',auth,restrictTo('user'), (req, res)=>{
     })
 })
 
-router.get('/:categoryName/products', async (req, res) => {
+
+  router.get('/:categoryName/products/:pageNumber/:limit', async (req, res) => {
     try {
       // Fetch the category by name
       const category = await Category.findOne({ name: req.params.categoryName });
@@ -103,16 +104,24 @@ router.get('/:categoryName/products', async (req, res) => {
       if (!category) {
         return res.status(404).json({ message: 'Category not found' });
       }
-  
+      
+    const { pageNumber, limit } = req.params;
+    
+    const totalProducts = await Product.find({ category: category.id }).countDocuments();
+
       // Fetch the products that belong to the category
-      const products = await Product.find({ category: category.id });
-  
-      res.json(products);
+      const products = await Product.find({ category: category.id })
+      .skip((pageNumber - 1) * limit)
+          .limit(limit)
+          .sort({ dateCreated: -1 });
+          const totalPage = Math.ceil(totalProducts / limit);
+
+     
+      res.json({data:products,hasNextPage: pageNumber < totalPage});
+
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   });
-
-
   
 module.exports =router;
